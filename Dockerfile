@@ -110,6 +110,21 @@ RUN echo "extension=pdo_oci" > /etc/opt/rh/rh-php72/php.d/99-pdo_oci.ini
 ## END INSTALL OCI8 PDO_OCI
 
 
+# In order to drop the root user, we have to make some directories world
+# writeable as OpenShift default security model is to run the container under
+# random UID.
+RUN sed -i -f /opt/app-root/etc/httpdconf.sed /opt/rh/httpd24/root/etc/httpd/conf/httpd.conf && \
+    echo "IncludeOptional /opt/app-root/etc/conf.d/*.conf" >> /opt/rh/httpd24/root/etc/httpd/conf/httpd.conf && \
+    sed -i '/php_value session.save_path/d' /opt/rh/httpd24/root/etc/httpd/conf.d/rh-php72-php.conf && \
+    head -n151 /opt/rh/httpd24/root/etc/httpd/conf/httpd.conf | tail -n1 | grep "AllowOverride All" || exit && \
+    mkdir -p /tmp/sessions && \
+    chown -R 1001:0 /opt/app-root /tmp/sessions && \
+    chmod -R a+rwx /tmp/sessions && \
+    chmod -R ug+rwx /opt/app-root && \
+    chmod -R a+rwx /etc/opt/rh/rh-php72 && \
+chmod -R a+rwx /opt/rh/httpd24/root/var/run/httpd
+
+
 USER 1001
 
 # Set the default CMD to print the usage of the language image
